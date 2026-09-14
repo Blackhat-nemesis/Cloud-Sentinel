@@ -15,7 +15,7 @@ Vercel — React / Vite frontend
   ▼
 Render — Express / Socket.IO backend ──► AWS EC2 read-only Describe APIs
   │
-  └── SQLite database on Render persistent disk
+  └── Render Postgres database
 ```
 
 ## Local development
@@ -43,8 +43,8 @@ Open `http://localhost:5173`. The backend health endpoint is `http://localhost:3
 ## Deploy backend to Render
 
 1. Push this project to a private GitHub repository. Do not commit any `.env` file or database file.
-2. In Render, choose **New + → Blueprint** and select the repository. The included [`render.yaml`](render.yaml) provisions the `cloud-sentinel-api` service.
-3. Use the **Starter** plan (or higher). SQLite needs the persistent disk configured by the blueprint; Render's ephemeral filesystem would erase it on redeploy.
+2. In Render, choose **New + → Blueprint** and select the repository. The included [`render.yaml`](render.yaml) provisions both the `cloud-sentinel-api` service and `cloud-sentinel-db` PostgreSQL database.
+3. Both resources are explicitly configured for Render's **Free** plan. No persistent disk or paid plan is required.
 4. In the service's Environment settings, set:
 
    ```text
@@ -55,7 +55,7 @@ Open `http://localhost:5173`. The backend health endpoint is `http://localhost:3
    LIVE_CONTAINMENT_ENABLED=false
    ```
 
-   `AWS_SESSION_TOKEN` is optional and should be set only for temporary AWS credentials. Render already sets the port; never add AWS variables in Vercel.
+   `DATABASE_URL` is wired automatically from Render Postgres by the Blueprint—do not enter it manually. `AWS_SESSION_TOKEN` is optional and should be set only for temporary AWS credentials. Render already sets the port; never add AWS variables in Vercel.
 5. Deploy and open `https://your-render-service.onrender.com/health`. It must return `{"status":"ok", ...}` before deploying the frontend.
 
 For least privilege, give the AWS IAM principal only `ec2:DescribeInstances` and `ec2:DescribeRegions` for the demo account. The application does not call any write or termination API.
@@ -82,7 +82,7 @@ If you add a custom frontend domain, append it to `FRONTEND_ORIGIN` as a comma-s
 | --- | --- | --- |
 | `VITE_API_URL` | Vercel only | Public backend base URL, embedded during frontend build. |
 | `FRONTEND_ORIGIN` | Render only | Exact allowed Vercel URL(s) for REST and Socket.IO CORS. |
-| `DATABASE_URL` | Render | `file:/var/data/cloudsentinel.db`, supplied by `render.yaml`. |
+| `DATABASE_URL` | Render | PostgreSQL connection string injected automatically by `render.yaml`. |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Render only | Backend AWS credential provider chain. |
 | `AWS_DEFAULT_REGION` | Render only | Default AWS region (`ap-south-1`). |
 | `LIVE_CONTAINMENT_ENABLED` | Render only | Explicitly false; live containment is disabled. |
@@ -100,8 +100,8 @@ If you add a custom frontend domain, append it to `FRONTEND_ORIGIN` as a comma-s
 
 - `frontend/` — Vite React dashboard. API endpoint comes from `VITE_API_URL`.
 - `backend/` — Express, Socket.IO, Prisma, simulation engine, and read-only AWS EC2 analysis.
-- `backend/prisma/` — SQLite schema. A production database lives on the Render disk, not in Git.
+- `backend/prisma/` — PostgreSQL schema. The database is a separate free Render service, not a local file.
 
 ## Future production work
 
-For a full SaaS deployment, replace SQLite with managed PostgreSQL, add authentication and tenant isolation, use CloudWatch/CloudTrail ingestion, and add guarded human-approved containment workflows.
+For a full SaaS deployment, add authentication and tenant isolation, use CloudWatch/CloudTrail ingestion, and add guarded human-approved containment workflows. Render's free Postgres tier is suitable for a hackathon demo but expires after 30 days; move to a paid database before relying on it long-term.

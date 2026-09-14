@@ -3,19 +3,17 @@ services:
     name: cloud-sentinel-api
     runtime: node
     rootDir: backend
-    plan: starter
+    plan: free
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /health
-    disk:
-      name: cloud-sentinel-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: file:/var/data/cloudsentinel.db
+        fromDatabase:
+          name: cloud-sentinel-db
+          property: connectionString
       - key: FRONTEND_ORIGIN
         sync: false
       - key: AWS_DEFAULT_REGION
@@ -26,3 +24,9 @@ services:
         sync: false
       - key: AWS_SESSION_TOKEN
         sync: false
+databases:
+  - name: cloud-sentinel-db
+    plan: free
+    region: singapore
+    databaseName: cloudsentinel
+    user: cloudsentinel
