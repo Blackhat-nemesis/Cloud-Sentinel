@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
+    "@types/cors": "^2.8.19",
     "@types/node": "^26.5.1",
     "prisma": "^5.22.0",
     "ts-node": "^10.9.2",

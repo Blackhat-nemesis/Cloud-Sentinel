@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Request, type Response } from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -53,11 +53,11 @@ io.on('connection', (socket) => {
 });
 
 // APIs
-app.get('/health', (_req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', mode: awsEngine.isConnected() ? 'live_aws' : 'simulation' });
 });
 
-app.get('/api/dashboard', async (req, res) => {
+app.get('/api/dashboard', async (_req: Request, res: Response) => {
     const resources = await prisma.cloudResource.findMany({ where: { status: 'running' }});
     const anomalies = await prisma.anomaly.findMany({ where: { status: 'open' }});
     const quarantined = await prisma.cloudResource.count({ where: { quarantined: true }});
@@ -77,34 +77,34 @@ app.get('/api/dashboard', async (req, res) => {
     });
 });
 
-app.get('/api/resources', async (req, res) => {
+app.get('/api/resources', async (_req: Request, res: Response) => {
     const resources = await prisma.cloudResource.findMany();
     res.json(resources);
 });
 
-app.get('/api/events', async (req, res) => {
+app.get('/api/events', async (_req: Request, res: Response) => {
     const events = await prisma.telemetryEvent.findMany({ orderBy: { timestamp: 'desc' }, take: 100 });
     res.json(events);
 });
 
-app.get('/api/anomalies', async (req, res) => {
+app.get('/api/anomalies', async (_req: Request, res: Response) => {
     const anomalies = await prisma.anomaly.findMany({ orderBy: { detectedAt: 'desc' } });
     res.json(anomalies);
 });
 
-app.get('/api/audit-log', async (req, res) => {
+app.get('/api/audit-log', async (_req: Request, res: Response) => {
     const actions = await prisma.containmentAction.findMany({ orderBy: { timestamp: 'desc' } });
     res.json(actions);
 });
 
 // Simulation Controls
-app.post('/api/simulation/start', async (req, res) => {
+app.post('/api/simulation/start', async (req: Request, res: Response) => {
     const { preset } = presetSchema.parse(req.body);
     await engine.setPreset(preset);
     res.json({ success: true, preset });
 });
 
-app.post('/api/simulation/reset', async (req, res) => {
+app.post('/api/simulation/reset', async (_req: Request, res: Response) => {
     engine.stop();
     await prisma.cloudResource.deleteMany();
     await prisma.telemetryEvent.deleteMany();
@@ -115,7 +115,7 @@ app.post('/api/simulation/reset', async (req, res) => {
 });
 
 // Containment Controls
-app.post('/api/containment/quarantine', async (req, res) => {
+app.post('/api/containment/quarantine', async (req: Request, res: Response) => {
     const { resourceIds } = quarantineSchema.parse(req.body);
     
     for (const id of resourceIds) {
@@ -138,7 +138,7 @@ app.post('/api/containment/quarantine', async (req, res) => {
     res.json({ success: true, action });
 });
 
-app.post('/api/containment/revoke-credential', async (req, res) => {
+app.post('/api/containment/revoke-credential', async (req: Request, res: Response) => {
     const { principal } = revokeSchema.parse(req.body);
     const action = await prisma.containmentAction.create({
         data: {
@@ -153,7 +153,7 @@ app.post('/api/containment/revoke-credential', async (req, res) => {
 });
 
 // AWS Connection Controls
-app.post('/api/aws/connect', async (req, res) => {
+app.post('/api/aws/connect', async (req: Request, res: Response) => {
     const creds = awsSchema.parse(req.body);
     
     // Stop simulation
@@ -170,7 +170,7 @@ app.post('/api/aws/connect', async (req, res) => {
     }
 });
 
-app.post('/api/aws/disconnect', async (req, res) => {
+app.post('/api/aws/disconnect', async (_req: Request, res: Response) => {
     // Stop live AWS Engine
     awsEngine.stop();
     
@@ -184,7 +184,7 @@ app.post('/api/aws/disconnect', async (req, res) => {
     res.json({ success: true, message: 'Disconnected from AWS, Simulation restored' });
 });
 
-app.post('/api/aws/analyze', async (req, res) => {
+app.post('/api/aws/analyze', async (req: Request, res: Response) => {
     const { mode } = liveAnalysisSchema.parse(req.body) as { mode: LiveAnalysisMode };
     if (!awsEngine.isConnected()) {
         res.status(409).json({ success: false, message: 'Connect to AWS before running live analysis.' });
@@ -194,7 +194,7 @@ app.post('/api/aws/analyze', async (req, res) => {
     res.json({ success: true, result });
 });
 
-app.get('/api/aws/status', (req, res) => {
+app.get('/api/aws/status', (_req: Request, res: Response) => {
     res.json({ connected: awsEngine.isConnected() });
 });
 
