@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model CloudResource {
+  id             String   @id @default(uuid())
+  provider       String   @default("aws")
+  accountId      String
+  region         String
+  availabilityZone String?
+  instanceType   String
+  cpuCount       Int
+  gpuCount       Int
+  gpuUtilization Float    @default(0)
+  cpuUtilization Float    @default(0)
+  hourlyCost     Float
+  createdAt      DateTime @default(now())
+  status         String   @default("running") // running, quarantined, terminated
+  owner          String?
+  project        String?
+  costCenter     String?
+  tags           String?  // JSON string
+  approved       Boolean  @default(true)
+  quarantined    Boolean  @default(false)
+}
+
+model TelemetryEvent {
+  id           String   @id @default(uuid())
+  timestamp    DateTime @default(now())
+  eventType    String
+  resourceId   String?
+  region       String?
+  iamPrincipal String?
+  spend        Float?
+  utilization  Float?
+  metadata     String?  // JSON string
+}
+
+model Anomaly {
+  id                  String   @id @default(uuid())
+  type                String   // velocity, z-score, cryptojacking
+  severity            String   // low, medium, high, critical
+  score               Float
+  confidence          Float
+  detectedAt          DateTime @default(now())
+  affectedResourceIds String   // comma separated or JSON string
+  explanation         String
+  recommendedAction   String
+  status              String   @default("open") // open, acknowledged, resolved
+}
+
+model ContainmentAction {
+  id                String   @id @default(uuid())
+  actionType        String
+  initiatedBy       String
+  timestamp         DateTime @default(now())
+  affectedResources String   // JSON string or count
+  estimatedSavings  Float
+  status            String   @default("completed")
+  simulationMode    Boolean  @default(true)
+}
